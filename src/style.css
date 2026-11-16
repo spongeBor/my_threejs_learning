@@ -1,0 +1,83 @@
+:root {
+	color-scheme: dark;
+	--bg: #0b0e14;
+	--panel: #11161f;
+	--line: #232b38;
+	--text: #e6edf3;
+	--muted: #8b949e;
+	--accent: #79c0ff;
+	--ok: #7ee787;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+	margin: 0;
+	height: 100%;
+	background: var(--bg);
+	color: var(--text);
+	font: 14px/1.7 -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif;
+	-webkit-font-smoothing: antialiased;
+}
+
+body.viewer { overflow: hidden; }
+canvas { display: block; }
+
+/* ---------- 课内 HUD ---------- */
+#hud {
+	position: fixed;
+	left: 16px;
+	top: 16px;
+	padding: 12px 14px;
+	background: rgba(13, 17, 23, .72);
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	backdrop-filter: blur(6px);
+	pointer-events: none;
+	font-size: 12px;
+	line-height: 1.9;
+	max-width: 300px;
+}
+
+#hud h1 { margin: 0 0 6px; font-size: 13px; color: var(--accent); font-weight: 600; }
+#hud .row { color: var(--muted); }
+#hud b { color: var(--text); font-weight: 500; }
+#fps { color: var(--ok); font-variant-numeric: tabular-nums; }
+
+kbd {
+	background: #21262d;
+	border: 1px solid #30363d;
+	border-bottom-width: 2px;
+	border-radius: 4px;
+	padding: 0 4px;
+	font: 11px ui-monospace, monospace;
+}
+
+/* ---------- 课程首页 ---------- */
+.wrap { max-width: 940px; margin: 0 auto; padding: 56px 24px 80px; }
+.eyebrow { color: var(--accent); font: 12px/1 ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; }
+h1.title { font-size: 34px; line-height: 1.25; margin: 12px 0 10px; letter-spacing: -.02em; }
+.sub { color: var(--muted); margin: 0 0 32px; max-width: 620px; }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 14px; }
+.card {
+	display: block;
+	border: 1px solid var(--line);
+	background: var(--panel);
+	border-radius: 12px;
+	padding: 16px;
+	color: inherit;
+	text-decoration: none;
+	transition: border-color .15s, transform .15s;
+}
+a.card:hover { border-color: #3d4a5e; transform: translateY(-2px); }
+.card .no { font: 12px/1 ui-monospace, monospace; color: var(--muted); }
+.card h3 { margin: 8px 0 6px; font-size: 15px; }
+.card p { margin: 0; color: var(--muted); font-size: 12.5px; }
+.card.locked { opacity: .45; cursor: not-allowed; }
+
+.badge { display: inline-block; margin-top: 12px; font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.badge.live { color: var(--ok); border-color: #1f3b2a; background: #0f1a14; }
+
+pre { background: #0f131a; border: 1px solid var(--line); padding: 14px; border-radius: 10px; overflow: auto; font: 12.5px/1.65 ui-monospace, monospace; }
+code { font-family: ui-monospace, monospace; }
