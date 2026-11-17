@@ -83,3 +83,12 @@ pre { background: #0f131a; border: 1px solid var(--line); padding: 14px; border-
 code { font-family: ui-monospace, monospace; }
 
 .section-title { margin: 44px 0 14px; font-size: 13px; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; font-weight: 500; }
+
+.doc-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 14px; }
+.doc { display: block; border: 1px solid var(--line); background: var(--panel); border-radius: 12px;
+	padding: 14px 16px; text-decoration: none; color: inherit; transition: border-color .15s, transform .15s; }
+.doc:hover { border-color: #3d4a5e; transform: translateY(-2px); }
+.doc h3 { margin: 0 0 6px; font-size: 13.5px; }
+.doc p { margin: 0; color: var(--muted); font-size: 12px; }
+.sub.small { font-size: 12.5px; margin-bottom: 14px; }
+.sub.small code { background: #161d29; padding: 1px 5px; border-radius: 4px; }
