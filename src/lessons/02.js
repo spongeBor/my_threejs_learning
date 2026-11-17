@@ -162,7 +162,9 @@ PLANETS.forEach( ( planet, index ) => {
 		new THREE.LineBasicMaterial( { color: 0x2a3648 } ),
 	) );
 
-	bodies.push( { ...planet, orbitPivot, system, tiltGroup, mesh, moonPivot, moonMesh } );
+	// phase 必须存进数据：循环里每帧都会用绝对时间重算 rotation.y，
+	// 如果相位不参与计算，会被 simTime = 0 冲掉，第一帧所有行星回到同一条线上
+	bodies.push( { ...planet, phase: index * 1.7, orbitPivot, system, tiltGroup, mesh, moonPivot, moonMesh } );
 
 } );
 
@@ -234,7 +236,7 @@ renderer.setAnimationLoop( () => {
 	for ( const b of bodies ) {
 
 		// 公转：转的是父级，整条轨道一起转
-		b.orbitPivot.rotation.y = simTime * b.revolution * 0.5;
+		b.orbitPivot.rotation.y = b.phase + simTime * b.revolution * 0.5;
 
 		// 自转：只转自己
 		b.mesh.rotation.y = simTime * b.spin;
