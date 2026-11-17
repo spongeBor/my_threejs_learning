@@ -111,6 +111,23 @@ mesh.rotation.y = simTime * spin;
 | 长时间运行 | 不漂移 | 浮点误差累积 |
 | 想跳到第 10 秒 | `simTime = 10` | 做不到 |
 
+### 初始相位（phase）
+
+```js
+// ❌ 初始化时赋一次，第一帧就被覆盖
+orbitPivot.rotation.y = index * 1.7;
+loop: orbitPivot.rotation.y = simTime * speed;      // simTime = 0 → 回到 0°
+
+// ✅ 相位参与公式
+bodies.push( { ..., phase: index * 1.7 } );
+loop: orbitPivot.rotation.y = b.phase + simTime * speed;
+```
+
+规律：**绝对时间驱动时，所有"常量"都必须写进同一个公式**，否则每帧都会被冲掉。
+
+> 注意：这个错误在画面上几乎看不出来——`simTime` 从第一帧就开始涨，1 秒内行星就散开了。
+> 所以判断"某行代码有没有生效"，不能靠肉眼，要用控制台打印或冻结状态。
+
 ---
 
 ## 5. 代码走读（`src/lessons/02.js`）
@@ -196,7 +213,7 @@ if ( planet.name === '火星' ) {
 
 | 现象 | 原因 |
 |---|---|
-| 行星排成一条直线 | 所有 `orbitPivot.rotation.y` 初始值都是 0 |
+| 加载瞬间行星挤在同一条射线上 | `phase` 全是 0；只持续不到 1 秒，随后因速度不同散开（用控制台冻结才能看清） |
 | 卫星穿过行星 | 轨道半径 < 行星半径 + 卫星半径 |
 | 行星全黑 | 背光面（正常），或忘了 `PointLight` |
 | 暂停后调速无效 | 暂停时 `simTime` 不累加，恢复后才会变 |
