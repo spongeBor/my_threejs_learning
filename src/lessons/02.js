@@ -45,13 +45,14 @@ const renderer = new THREE.WebGLRenderer( { antialias: true } );
 renderer.setPixelRatio( Math.min( window.devicePixelRatio, 2 ) );
 renderer.setSize( window.innerWidth, window.innerHeight );
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
 document.body.appendChild( renderer.domElement );
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color( 0x05070c );
 
 const camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 500 );
-camera.position.set( 0, 11, 24 );
+camera.position.set( 0, 12, 22 );
 
 // ---------------------------------------------------------------------------
 // 星空背景：BufferGeometry 直接塞顶点，Points 一个点一个点地画
@@ -79,25 +80,25 @@ scene.add( new THREE.Points( starGeo, new THREE.PointsMaterial( { color: 0x9fb4c
 // 太阳：自己发光，用 MeshBasicMaterial（不受光）
 // ---------------------------------------------------------------------------
 const sun = new THREE.Mesh(
-	new THREE.SphereGeometry( 1.6, 64, 32 ),
+	new THREE.SphereGeometry( 1.25, 64, 32 ),
 	new THREE.MeshBasicMaterial( { color: 0xffb36b } ),
 );
 scene.add( sun );
 
 // 点光源放在太阳位置：1/d² 衰减，越远的行星越暗 —— 这是真实物理，不是手调的
-scene.add( new THREE.PointLight( 0xffd9b0, 160, 0, 2 ) );
+scene.add( new THREE.PointLight( 0xffd9b0, 220, 0, 2 ) );
 
 // 一点点环境光，避免背光面死黑
-scene.add( new THREE.HemisphereLight( 0x2b3a55, 0x000000, 0.25 ) );
+scene.add( new THREE.HemisphereLight( 0x2b3a55, 0x000000, 0.35 ) );
 
 // ---------------------------------------------------------------------------
 // 行星数据（revolution = 公转速度，spin = 自转速度，tilt = 轴倾角）
 // ---------------------------------------------------------------------------
 const PLANETS = [
-	{ name: '水星', radius: 0.22, orbit: 3.0, color: 0x9a8f88, revolution: 1.6, spin: 0.4, tilt: 0.0 },
-	{ name: '地球', radius: 0.42, orbit: 4.8, color: 0x3b82f6, revolution: 1.0, spin: 1.2, tilt: 23.5, moon: true },
-	{ name: '火星', radius: 0.32, orbit: 6.4, color: 0xc1440e, revolution: 0.75, spin: 1.0, tilt: 25.2 },
-	{ name: '木星', radius: 0.9, orbit: 8.8, color: 0xd9a066, revolution: 0.45, spin: 2.2, tilt: 3.1 },
+	{ name: '水星', radius: 0.3, orbit: 3.0, color: 0x9a8f88, revolution: 1.6, spin: 0.4, tilt: 0.0 },
+	{ name: '地球', radius: 0.55, orbit: 4.8, color: 0x3b82f6, revolution: 1.0, spin: 1.2, tilt: 23.5, moon: true },
+	{ name: '火星', radius: 0.4, orbit: 6.4, color: 0xc1440e, revolution: 0.75, spin: 1.0, tilt: 25.2 },
+	{ name: '木星', radius: 1.0, orbit: 8.8, color: 0xd9a066, revolution: 0.45, spin: 2.2, tilt: 3.1 },
 ];
 
 const orbitLines = new THREE.Group();
@@ -142,7 +143,7 @@ PLANETS.forEach( ( planet, index ) => {
 			new THREE.SphereGeometry( 0.12, 24, 12 ),
 			new THREE.MeshStandardMaterial( { color: 0xcfcfcf, roughness: 0.9 } ),
 		);
-		moonMesh.position.x = 0.85;
+		moonMesh.position.x = 1.0;
 		moonPivot.add( moonMesh );
 
 	}
