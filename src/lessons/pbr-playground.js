@@ -137,3 +137,5 @@ window.addEventListener( 'resize', () => {
 //   __pbr.scene.environmentIntensity = 0.2   → 环境变暗
 //   __pbr.spheres[0].material.envMapIntensity = 2
 window.__pbr = { scene, camera, renderer, spheres, controls };
+
+window.THREE = THREE;

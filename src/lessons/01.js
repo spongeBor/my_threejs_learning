@@ -131,3 +131,7 @@ window.addEventListener( 'resize', () => {
 
 // 控制台调试入口：__scene.cube.visible = false 试试
 window.__scene = { scene, camera, renderer, cube, pivot, controls, axes };
+
+// 调试用：把模块里 import 的 THREE 暴露到 window，控制台才能直接 new THREE.Vector3()
+// ES 模块不会把变量泄漏到全局，这是模块化设计的正常行为，不是 bug
+window.THREE = THREE;

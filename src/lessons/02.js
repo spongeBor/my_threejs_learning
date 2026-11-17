@@ -371,3 +371,6 @@ window.addEventListener( 'resize', () => {
 //   __solar.bodies[1].mesh.getWorldPosition(new THREE.Vector3())
 //   __solar.bodies[1].system.position.x = 8
 window.__solar = { scene, camera, bodies, sun, controls, orbitLines, axes };
+
+// 调试用：暴露 THREE 给控制台（模块作用域默认不泄漏到 window）
+window.THREE = THREE;
