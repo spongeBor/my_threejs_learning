@@ -27,7 +27,7 @@ const hud = createHUD( {
 	tips: [
 		'<kbd>拖拽</kbd> 旋转 · <kbd>滚轮</kbd> 缩放',
 		'<kbd>空格</kbd> 暂停 · <kbd>↑</kbd><kbd>↓</kbd> 调速',
-		'<kbd>A</kbd> 坐标轴 · <kbd>O</kbd> 轨道线',
+		'<kbd>A</kbd> 坐标轴 · <kbd>O</kbd> 轨道线 · <kbd>T</kbd> 自转轴',
 	],
 } );
 
@@ -89,11 +89,82 @@ scene.add( sun );
 scene.add( new THREE.PointLight( 0xffd9b0, 220, 0, 2 ) );
 
 // 一点点环境光，避免背光面死黑
-scene.add( new THREE.HemisphereLight( 0x2b3a55, 0x000000, 0.35 ) );
+scene.add( new THREE.HemisphereLight( 0x3d5170, 0x0a0d14, 0.9 ) );
 
 // ---------------------------------------------------------------------------
 // 行星数据（revolution = 公转速度，spin = 自转速度，tilt = 轴倾角）
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// 程序化贴图
+// 球体是旋转对称的：纯色球你既看不出它在自转，也看不出轴是斜的。
+// 用 canvas 画一层经纬网 + 斑点，旋转和倾角才"看得见"。
+// 这也是第 5 课纹理的预告：贴图 = 一张图 + UV 坐标。
+// ---------------------------------------------------------------------------
+function makePlanetTexture( seed ) {
+
+	const w = 512;
+	const h = 256;
+
+	const canvas = document.createElement( 'canvas' );
+	canvas.width = w;
+	canvas.height = h;
+	const ctx = canvas.getContext( '2d' );
+
+	// 白底：最终会和 material.color 相乘，所以底色留给行星颜色
+	ctx.fillStyle = '#ffffff';
+	ctx.fillRect( 0, 0, w, h );
+
+	// 固定种子的伪随机：刷新后纹理不变，方便前后对比
+	let s = seed;
+	const rand = () => ( s = ( s * 16807 ) % 2147483647 ) / 2147483647;
+
+	// 大陆 / 云斑
+	for ( let i = 0; i < 30; i ++ ) {
+
+		const x = rand() * w;
+		const y = rand() * h;
+		const r = 10 + rand() * 40;
+		const g = ctx.createRadialGradient( x, y, 0, x, y, r );
+		g.addColorStop( 0, 'rgba(110,120,135,0.5)' );
+		g.addColorStop( 1, 'rgba(110,120,135,0)' );
+		ctx.fillStyle = g;
+		ctx.beginPath();
+		ctx.arc( x, y, r, 0, Math.PI * 2 );
+		ctx.fill();
+
+	}
+
+	// 经纬网：自转的参照物
+	ctx.strokeStyle = 'rgba(55,65,80,0.5)';
+	ctx.lineWidth = 1.5;
+
+	for ( let i = 1; i < 8; i ++ ) {
+
+		const y = ( i / 8 ) * h;
+		ctx.beginPath();
+		ctx.moveTo( 0, y );
+		ctx.lineTo( w, y );
+		ctx.stroke();
+
+	}
+
+	for ( let i = 1; i < 16; i ++ ) {
+
+		const x = ( i / 16 ) * w;
+		ctx.beginPath();
+		ctx.moveTo( x, 0 );
+		ctx.lineTo( x, h );
+		ctx.stroke();
+
+	}
+
+	const texture = new THREE.CanvasTexture( canvas );
+	texture.colorSpace = THREE.SRGBColorSpace;
+	texture.anisotropy = 8;
+	return texture;
+
+}
+
 const PLANETS = [
 	{ name: '水星', radius: 0.3, orbit: 3.0, color: 0x9a8f88, revolution: 1.6, spin: 0.4, tilt: 0.0 },
 	{ name: '地球', radius: 0.55, orbit: 4.8, color: 0x3b82f6, revolution: 1.0, spin: 1.2, tilt: 23.5, moon: true },
@@ -126,9 +197,32 @@ PLANETS.forEach( ( planet, index ) => {
 	// 4) 行星本体：自转写在这里，只影响自己
 	const mesh = new THREE.Mesh(
 		new THREE.SphereGeometry( planet.radius, 48, 24 ),
-		new THREE.MeshStandardMaterial( { color: planet.color, roughness: 0.75, metalness: 0.0 } ),
+		new THREE.MeshStandardMaterial( {
+			map: makePlanetTexture( index + 1 ),  // 白底灰线，和 color 相乘后呈现行星颜色
+			color: planet.color,
+			roughness: 0.75,
+			metalness: 0.0,
+		} ),
 	);
 	tiltGroup.add( mesh );
+
+	// 自转轴可视化：倾角只有画出来才看得见
+	const spinAxis = new THREE.Line(
+		new THREE.BufferGeometry().setFromPoints( [
+			new THREE.Vector3( 0, - planet.radius * 1.7, 0 ),
+			new THREE.Vector3( 0, planet.radius * 1.7, 0 ),
+		] ),
+		new THREE.LineBasicMaterial( { color: 0x8ab4ff, transparent: true, opacity: 0.7 } ),
+	);
+	tiltGroup.add( spinAxis );
+
+	// 北极点标记：一眼判断"哪边是北"
+	const northPole = new THREE.Mesh(
+		new THREE.SphereGeometry( Math.max( planet.radius * 0.1, 0.035 ), 12, 8 ),
+		new THREE.MeshBasicMaterial( { color: 0xffffff } ),
+	);
+	northPole.position.set( 0, planet.radius, 0 );
+	tiltGroup.add( northPole );
 
 	// 5) 卫星：挂在 system 上而不是 mesh 上，否则会继承自转
 	let moonPivot = null;
@@ -164,7 +258,7 @@ PLANETS.forEach( ( planet, index ) => {
 
 	// phase 必须存进数据：循环里每帧都会用绝对时间重算 rotation.y，
 	// 如果相位不参与计算，会被 simTime = 0 冲掉，第一帧所有行星回到同一条线上
-	bodies.push( { ...planet, phase: index * 1.7, orbitPivot, system, tiltGroup, mesh, moonPivot, moonMesh } );
+	bodies.push( { ...planet, phase: index * 1.7, orbitPivot, system, tiltGroup, mesh, spinAxis, northPole, moonPivot, moonMesh } );
 
 } );
 
@@ -175,6 +269,7 @@ const axes = new THREE.AxesHelper( 3 );
 axes.visible = false;
 scene.add( axes );
 
+let showSpinAxis = true;
 let paused = false;
 let speed = 1;
 let simTime = 0;
@@ -211,6 +306,16 @@ window.addEventListener( 'keydown', ( e ) => {
 	} else if ( e.key === 'o' || e.key === 'O' ) {
 
 		orbitLines.visible = ! orbitLines.visible;
+
+	} else if ( e.key === 't' || e.key === 'T' ) {
+
+		showSpinAxis = ! showSpinAxis;
+		for ( const b of bodies ) {
+
+			b.spinAxis.visible = showSpinAxis;
+			b.northPole.visible = showSpinAxis;
+
+		}
 
 	}
 
