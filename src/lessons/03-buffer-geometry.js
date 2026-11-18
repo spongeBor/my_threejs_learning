@@ -25,7 +25,7 @@ const hud = createHUD( {
 	title: 'Lesson 03 · 手写 BufferGeometry',
 	tips: [
 		'<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> 切换：三角形 / 索引方形 / 立方体 / 波浪',
-		'<kbd>B</kbd> 背面剔除 · <kbd>W</kbd> 线框 · <kbd>N</kbd> 法线',
+		'<kbd>B</kbd> 单面/双面/背面 · <kbd>W</kbd> 线框 · <kbd>N</kbd> 法线',
 		'<kbd>空格</kbd> 暂停 · <kbd>拖拽</kbd> 旋转',
 	],
 } );
@@ -257,8 +257,9 @@ let simTime = 0;
 let currentMode = 'triangle';
 
 const MODES = {
-	triangle: { name: '三角形', build: triangleGeometry, view: { pos: [ 0, 2.0, 7 ], target: [ 0, 0, 0 ] } },
-	quad: { name: '索引方形', build: quadGeometry, view: { pos: [ 0, 2.0, 7 ], target: [ 0, 0, 0 ] } },
+	// 机位稍微偏一点：不然法线正对着相机，按 N 什么也看不到
+	triangle: { name: '三角形', build: triangleGeometry, view: { pos: [ 2.4, 2.2, 6.4 ], target: [ 0, 0, 0 ] } },
+	quad: { name: '索引方形', build: quadGeometry, view: { pos: [ 2.4, 2.2, 6.4 ], target: [ 0, 0, 0 ] } },
 	cube: { name: '立方体 24 顶点', build: cubeGeometry, view: { pos: [ 3.2, 3.0, 6.4 ], target: [ 0, 0, 0 ] } },
 	wave: { name: '波浪（动态）', build: waveGeometry, view: { pos: [ 0, 6.6, 11 ], target: [ 0, 0, 0 ] } },
 };
@@ -339,7 +340,9 @@ window.addEventListener( 'keydown', ( e ) => {
 	else if ( e.key === 'b' || e.key === 'B' ) {
 
 		// 单面 → 双面 → 背面，看"绕序"到底在管什么
-		material.side = material.side === THREE.FrontSide ? THREE.DoubleSide : THREE.FrontSide;
+		// 真正决定正反的是索引顺序：FrontSide 只画逆时针面，BackSide 只画顺时针面
+		const order = [ THREE.FrontSide, THREE.DoubleSide, THREE.BackSide ];
+		material.side = order[ ( order.indexOf( material.side ) + 1 ) % order.length ];
 		material.needsUpdate = true;
 		refreshFlags();
 
@@ -418,4 +421,5 @@ window.addEventListener( 'resize', () => {
 //   __geo.mesh.geometry.setDrawRange( 0, 3 );               // 只画前 3 个顶点（1 个三角形）
 //   __geo.mesh.geometry.setDrawRange( 0, Infinity );        // 恢复
 //   __geo.mesh.geometry.computeVertexNormals();             // 重算法线
+window.THREE = THREE;
 window.__geo = { scene, camera, mesh, material, MODES, setMode };
