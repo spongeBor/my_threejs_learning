@@ -53,6 +53,21 @@ kbd {
 	font: 11px ui-monospace, monospace;
 }
 
+/* ---------- 02 附录：欧拉角左右对照 ---------- */
+.cmp-label {
+	position: fixed;
+	transform: translate(-50%, 0);
+	padding: 4px 10px;
+	border-radius: 999px;
+	border: 1px solid var(--line);
+	background: rgba(13, 17, 23, .82);
+	font-size: 12px;
+	white-space: nowrap;
+	pointer-events: none;
+}
+.cmp-label.bad { color: #ff8b8b; border-color: #4a2222; }
+.cmp-label.good { color: var(--ok); border-color: #1f3b2a; }
+
 /* ---------- 课程首页 ---------- */
 .wrap { max-width: 940px; margin: 0 auto; padding: 56px 24px 80px; }
 .eyebrow { color: var(--accent); font: 12px/1 ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; }
