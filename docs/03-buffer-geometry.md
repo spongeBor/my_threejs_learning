@@ -1,230 +1,183 @@
-# 第 3 课 · 手写 BufferGeometry
+# 第 3 课 · BufferGeometry
 
 - 页面：`/lessons/03-buffer-geometry.html`
-- 代码：`src/lessons/03-buffer-geometry.js`
-- 目标：能把"几何体"当成**数组**看，能手写三角形和网格，知道 `needsUpdate` 为什么存在
+- 代码：`src/lessons/03.js`
+- 目标：能自己造一张顶点网格；知道 `needsUpdate` 和法线为什么必须管
 
 ---
 
 ## 0. 一句话
 
-**几何体 = 一串顶点属性 + 一份索引。**`BoxGeometry` 只是别人替你填好的数组。
+**GPU 不认识"平面""球体"，它只认识两样东西：**
 
-```js
-geometry.attributes.position   // Float32Array，每 3 个数一个顶点
-geometry.index                 // 哪些顶点组成哪个三角形
-geometry.attributes.normal     // 光照用的方向
-geometry.attributes.uv         // 贴图用的坐标
-```
+1. 一串扁平的顶点属性（`position` / `normal` / `uv` / `color`）
+2. 一张索引表，说明哪三个顶点连成一个三角形
+
+`BoxGeometry`、`SphereGeometry` 不过是"帮你把这些数组算好的函数"。
 
 ---
 
-## 1. 心智模型
+## 1. 顶点是扁平数组
 
-```
-几何体
-├── position   [x,y,z, x,y,z, x,y,z, ...]   顶点在哪
-├── normal     [nx,ny,nz, ...]              表面朝哪（光照靠它）
-├── uv         [u,v, ...]                   贴图贴在哪
-└── index      [0,1,2, 0,2,3, ...]          每 3 个数 = 1 个三角形
-
-GPU 只认"数组 + 布局"，不认对象。
-所以 BufferAttribute = { 数组, 每个顶点占几个数 }
+```js
+const positions = new Float32Array( 9409 * 3 );
+// [x0,y0,z0, x1,y1,z1, x2,y2,z2, ...]
 ```
 
-**关键区别**：JS 里你看到的是数组，GPU 里是一块显存 buffer。
-`array` 和 buffer 是**两份数据**，改完数组必须喊一声 `needsUpdate = true` 才会重新上传。
+- 每 **3 个 float** 是一个顶点
+- `BufferAttribute( positions, 3 )` 里的 `3` 就是"每个顶点几个分量"（叫 itemSize）
+- `uv` 是每顶点 2 个分量；`color` 是 3 个
+
+**为什么要扁平数组？** 因为 GPU 要的是连续内存块，一次上传、一次读取，不能是 `[{x,y,z}, ...]` 这种对象数组。
 
 ---
 
-## 2. 逐个概念
+## 2. index：复用顶点
 
-### 2.1 三角形：最小的单位
+网格是 97 × 97 个顶点，但三角形是 96 × 96 × 2 = 18432 个。
 
-```js
-const g = new THREE.BufferGeometry();
-g.setAttribute( 'position', new THREE.Float32BufferAttribute( [
-  - 1.3, - 1.0, 0,
-  1.3, - 1.0, 0,
-  0, 1.2, 0,
-], 3 ) );
-```
-
-没有索引时，**每 3 个顶点自动组成一个三角形**。
-
-### 2.2 索引：复用顶点
+如果不用索引，每个三角形都要写 3 个顶点，就要 `18432 × 3 = 55296` 个顶点数据，**5.8 倍冗余**。用索引之后，位置数据只需要 9409 份。
 
 ```js
-g.setIndex( [ 0, 1, 2, 0, 2, 3 ] );   // 4 个顶点画 2 个三角形
+indices[ i ++ ] = a; indices[ i ++ ] = c; indices[ i ++ ] = b;
+indices[ i ++ ] = b; indices[ i ++ ] = c; indices[ i ++ ] = d;
 ```
 
-| | 顶点数 | 索引数 | 三角形 |
-|---|---|---|---|
-| 不用索引 | 6 | 0 | 2 |
-| 用索引 | **4** | 6 | 2 |
-
-省的不只是内存：**顶点着色器少算 2 次**。网格越密，差距越大（球面差 2 倍以上）。
-
-### 2.3 绕序（winding）：正面朝哪
-
-three.js 默认 **逆时针 = 正面**（从物体外面看）。用右手定则：
-
-```
-手指沿 0 → 1 → 2 弯曲，拇指指向 = 这个面的正面
-```
-
-所以索引写 `[0,1,2]` 和 `[0,2,1]` 画出来是**同一个三角形**，但一个朝你、一个背你。
-
-- `side: FrontSide`（默认）：背面不画，省一半片元
-- `side: DoubleSide`：两面都画，但光照仍在用同一个法线
-- 画反了的表现：**物体从外面看不见，转进去反而看见了**
-
-### 2.4 立方体为什么是 24 个顶点
-
-几何上只有 8 个角，但代码里必须写 24 个：
-
-```
-一个角被 3 个面共用，3 个面的法线不同（±X、±Y、±Z）
-顶点 = (位置 + 法线 + UV) 的元组
-→ 位置相同、法线不同 → 没法共用同一个顶点
-→ 每个面各存 4 个，共 6 × 4 = 24
-```
-
-**这就是"接缝"的来源**：颜色断、贴图断、法线断的地方，顶点必须重复。
-
-> 反过来，球体的 UV 接缝（本初子午线那一列）也是这个原因，所以 `SphereGeometry` 的顶点数比"理论最小"多一些。
-
-### 2.5 法线：两种算法
-
-```js
-// ① 自己写（每个面一个方向）—— 立方体要的就是这个
-normals.push( ...face.n );
-
-// ② 让 three 从三角形推 —— 平均法线，适合曲面
-geometry.computeVertexNormals();
-```
-
-`computeVertexNormals()` 做的事：
-
-```
-对每个三角形算面法线 (b-a)×(c-a)
-累加到它的 3 个顶点上
-归一化
-```
-
-所以共享的顶点会得到"平均方向"——这就是**平滑着色**。想要棱角分明，要么按面拆顶点（24 顶点法），要么 `material.flatShading = true`。
-
-### 2.6 动态几何：波浪
-
-```js
-const arr = geometry.attributes.position.array;
-
-for ( let i = 0; i < arr.length; i += 3 ) {
-  arr[ i + 1 ] = waveHeight( arr[ i ], arr[ i + 2 ], simTime );  // 只改 y
-}
-
-geometry.attributes.position.needsUpdate = true;   // ← 忘了这句，画面纹丝不动
-geometry.computeVertexNormals();                    // 形状变了，法线也得重算
-```
-
-两个坑：
-
-1. **忘了 `needsUpdate`**：CPU 数据变了，GPU 那份还是旧的 → 画面不动，但 `console.log` 打印出来是新值
-2. **忘了重算法线**：形状在动，明暗却是旧的 → 看起来像"贴了张假图"
-
-性能提示：频繁更新的属性可以提前声明用途——
-
-```js
-geometry.attributes.position.setUsage( THREE.DynamicDrawUsage );
-```
+一个格子的四个角 `a b c d`，拆成两个三角形：`(a,c,b)` 和 `(b,c,d)`。
 
 ---
 
-## 3. 代码走读（`src/lessons/03-buffer-geometry.js`）
+## 3. 绕序：哪一面是正面
 
-1. `triangleGeometry()`：3 顶点，`computeVertexNormals` 兜底
-2. `quadGeometry()`：4 顶点 + 索引，演示复用
-3. `cubeGeometry()`：24 顶点，手写每个面的法线与 UV
-4. `waveGeometry()`：`(48+1)²` 个顶点，坐标由公式算出
-5. `setMode()`：换几何体时 `dispose()` 旧的，否则显存泄漏
-6. 循环：波浪模式下逐帧改 `position.array` 并 `needsUpdate`
+三角形顶点顺序决定了法线朝向。three.js 的约定：**从正面看是逆时针（CCW）**。
 
-按键：<kbd>1</kbd>–<kbd>4</kbd> 切换，<kbd>B</kbd> 剔除，<kbd>W</kbd> 线框，<kbd>N</kbd> 法线，<kbd>空格</kbd> 暂停。
+所以 `(a, c, b)` 而不是 `(a, b, c)` —— 顺序反了，法线就朝下，正面会变成背面，光照全黑。
+
+改错的后果：`side: THREE.FrontSide` 时看不到面；改成 `THREE.DoubleSide` 能看到，但光照仍然是错的。
 
 ---
 
-## 4. 动手实验
+## 4. 每帧更新：`needsUpdate`
 
-| 实验 | 预期现象 | 说明 |
+```js
+geometry.attributes.position.needsUpdate = true;
+```
+
+这不是"通知 three.js"，是**通知 WebGL"这块显存里的 buffer 需要重新上传"**。
+
+去掉它：CPU 上的数组确实在变（你 `console.log` 能看到），但 GPU 用的还是旧数据 → 波浪冻住。
+
+> 记住：**改数据 ≠ GPU 知道数据变了。** 这是 WebGL 最常见的"为什么没反应"。
+
+---
+
+## 5. 法线：光照的方向依据
+
+法线是"这个顶点朝哪个方向"。光照计算用它算 `dot(法线, 光线方向)`。
+
+波浪每帧改了 y 坐标，但法线还停留在初始的 `(0,1,0)`：
+
+- 表面起伏了
+- 光照还以为它是平的
+- 结果：颜色不随起伏变化，看起来像一张被揉皱的纸
+
+```js
+geometry.computeVertexNormals();   // 每帧重算
+```
+
+代价：它是 O(顶点数) 的 CPU 计算，SEG 调到 200 时就会明显掉帧。
+
+---
+
+## 6. UV
+
+```js
+uvs[ q ++ ] = ix / SEG;   // 0 → 1
+uvs[ q ++ ] = iz / SEG;
+```
+
+UV 是"贴图坐标"，0~1 对应纹理的宽高。没有 UV，贴图就没法贴上去（第 5 课会用到）。
+
+---
+
+## 7. 代码走读（`src/lessons/03.js`）
+
+| 段 | 内容 |
+|---|---|
+| 1 | 铺网格：`positions` + `uvs`，y 先置 0 |
+| 2 | 索引：两个三角形一个格子，注意绕序 |
+| 3 | 组装：`setAttribute` + `setIndex` |
+| 4 | 顶点色：按高度插值，每帧更新 |
+| 5 | 波浪函数：两个正弦叠加 |
+| 6 | 循环：改 y → `needsUpdate` → `computeVertexNormals` |
+
+---
+
+## 8. 实验表
+
+| 实验 | 现象 | 原因 |
 |---|---|---|
-| 三角形模式按 <kbd>B</kbd> 切双面 | 从背面也能看见 | `side` 决定要不要画背面 |
-| 方形模式把索引改成 `[0,2,1,0,3,2]` | 整个面消失 | 绕序反了，正面变背面 |
-| 立方体模式按 <kbd>N</kbd> | 每个面法线朝外 | 24 顶点的意义 |
-| 立方体模式删掉 `normals.push` | 光照错乱 / 全黑 | 缺属性时 three 不会替你补 |
-| 波浪模式注释 `needsUpdate` | 静止 | CPU 改了，GPU 不知道 |
-| 波浪模式注释 `computeVertexNormals` | 形状动、明暗不动 | 法线是缓存的 |
-| `setDrawRange(0, 3)` | 只剩一个三角形 | 索引是"从哪画到哪" |
+| 注释 `position.needsUpdate` | 波浪冻住 | GPU 还在用旧 buffer |
+| 注释 `computeVertexNormals()` | 表面像平的，光照不跟着起伏 | 法线没更新 |
+| 把 `(a,c,b)` 改成 `(a,b,c)` | 地形变黑/看不见 | 绕序反了，正面朝下 |
+| `side: DoubleSide` | 又看得见了 | 背面也渲染，但光照仍不对 |
+| `SEG` 96 → 200 | 帧率下降 | 顶点数平方增长 + 每帧重算法线 |
+| 按 <kbd>W</kbd> | 线框，能看到三角形 | `material.wireframe` |
 
 ---
 
-## 5. 自检
+## 9. 自检
 
 <details>
-<summary>1. 两个三角形共用一个顶点，可能出什么问题？</summary>
+<summary>1. 9409 个顶点、18432 个三角形，索引数组应该多长？</summary>
 
-看你需要它的**法线**和 **UV** 是不是也一样。
+`18432 × 3 = 55296`。每个三角形要 3 个索引。
 
-- 同一个平面上的两个三角形：法线相同，可以共用
-- 立方体的一个角：三个面法线不同，不能共用 → 必须拆成 3 个顶点
-
-**顶点能不能共用，取决于"属性是否完全一致"，而不是"位置是否相同"。**
+对照：如果不用索引，顶点数据要 55296 份，是现在的 5.8 倍。
 </details>
 
 <details>
-<summary>2. `needsUpdate = true` 到底做了什么？</summary>
+<summary>2. 去掉 `needsUpdate`，波浪为什么停住？</summary>
 
-它把 `version` 加一。渲染时 three 发现版本变了，就把整个 `array` 重新上传到 GPU 的 buffer。
+`positions` 这个 Float32Array 是 CPU 内存里的普通数组。WebGL 在 GPU 上有一份拷贝，`needsUpdate = true` 才会触发重新上传。
 
-所以它**不是"重算"**，是"重传"。数据本身你在 JS 里已经改好了。
+不设它，你改的是 CPU 那份，GPU 那份纹丝不动 —— 所以画面不变，但 `console.log` 里的值是变的。
 
-也解释了另一个现象：忘了它，`console.log` 打印的是新值，画面却是旧的——因为 GPU 那份没更新。
 </details>
 
 <details>
-<summary>3. 为什么波浪每帧都要 `computeVertexNormals()`？</summary>
+<summary>3. 去掉 `computeVertexNormals()`，光照为什么不对？</summary>
 
-法线是**缓存**，不会随顶点自动变。形状动了而法线不动，光照算的就是旧表面的朝向，明暗会显得"贴上去的"。
+法线还是初始的 `(0,1,0)`，也就是"整个表面都是平的、朝天"。
 
-代价：`computeVertexNormals` 要遍历所有三角形，顶点多时是 CPU 热点。真实项目里常用**顶点着色器**算法线（GPU 上算），或者直接接受近似。
+光照只看法线，不看你顶点实际在哪，所以高光和明暗不会随着波峰波谷变化，地形看起来像一张平面的蓝色纸。
 </details>
 
 <details>
-<summary>4. `dispose()` 不调用会怎样？</summary>
+<summary>4. 为什么 SEG 从 96 提到 200，帧率掉得比想象中快？</summary>
 
-几何体占的显存不会自动回收（JS 的 GC 管不到 GPU）。反复创建/销毁页面不释放，显存会一路上涨直到崩。
+顶点数是 `(SEG+1)²`，SEG 翻倍 → 顶点数 ×4。同时每帧还要遍历所有顶点改 y、改颜色、重算法线。
 
-规则：**手动创建、手动销毁**——`geometry.dispose()`、`texture.dispose()`、`material.dispose()`。
+这就是"CPU 每帧动全部顶点"的代价 —— 第 10 课会用 GPU 顶点着色器把这件事搬到显卡上。
 </details>
 
 ---
 
-## 6. 常见坑
+## 10. 常见坑
 
-| 现象 | 原因 | 修法 |
-|---|---|---|
-| 改了顶点，画面不动 | 忘了 `needsUpdate` | `attributes.position.needsUpdate = true` |
-| 物体从外面看不见 | 绕序反了 / 单面材质 | 交换索引顺序，或 `side: DoubleSide` |
-| 光照一片死黑 | 没 `normal` 属性 | `computeVertexNormals()` 或手写 |
-| 立方体棱角被抹平 | 用了 8 顶点 + 共享法线 | 24 顶点 + 每面法线，或 `flatShading` |
-| 切模式几次后卡顿 | 没 `dispose()` 旧几何体 | 换几何体前先 dispose |
-| 波浪像"贴纸"在动 | 没重算法线 | 每帧 `computeVertexNormals()` |
-| `count` 对不上 | 属性 itemSize 写错（3 写成 2） | 位置永远是 3 |
+| 现象 | 原因 |
+|---|---|
+| 什么都不显示 | 没设 `index`，或三角形绕序反了 |
+| 波浪不动 | `needsUpdate` 没设 |
+| 光照死板 | 没重算法线 |
+| 出现黑块/破面 | 索引越界，或顶点数和索引对不上 |
+| 帧率暴跌 | 顶点数太大 + 每帧 CPU 遍历 |
 
 ---
 
-## 7. 延伸
+## 11. 延伸
 
-- `src/core/BufferGeometry.js`：`setAttribute` / `setIndex` / `computeVertexNormals` 的实现
-- `src/core/BufferAttribute.js`：`needsUpdate`、`setUsage`、`updateRanges`
-- 官方示例：`webgl_geometry_*`、`webgl_buffergeometry_*`
-- 下一课：材质与光照（PBR），把第 1 课的 `MeshStandardMaterial` 参数真正讲透
+- `docs/pages/BufferGeometry.html`
+- `docs/pages/BufferAttribute.html`
+- 官方示例：`webgl_geometry_dynamic.html`（用 GPU 做波浪，对比本课的 CPU 版本）
+- 下一课：材质与光照（PBR）
