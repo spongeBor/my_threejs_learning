@@ -16,6 +16,7 @@
 | [01 场景 / 相机 / 渲染循环](01-scene-camera-loop.md) | `lessons/01-hello-scene.html` | 三件套、delta、resize、像素比 |
 | [02 变换与场景图](02-scene-graph.md) | `lessons/02-solar-system.html` | 父子矩阵、五层嵌套、欧拉角陷阱 |
 | [附表 PBR 材质](pbr.md) | `lessons/pbr-playground.html` | 能量守恒、微表面、IBL、参数映射 |
+| [附表 3D 数学公式](3d-math-cheatsheet.md) | 全课通用 | 向量、矩阵、投影、光照、插值、求交，含 three.js API 对照 |
 
 ## 每篇笔记的固定结构
 

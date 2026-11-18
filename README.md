@@ -27,6 +27,7 @@ docs/                    课堂笔记（每课一篇，Markdown）
   01-scene-camera-loop.md
   02-scene-graph.md
   pbr.md                 PBR 材质附表
+  3d-math-cheatsheet.md  3D 数学公式速查（全课通用）
 ```
 
 ## 约定
