@@ -422,4 +422,4 @@ window.addEventListener( 'resize', () => {
 //   __geo.mesh.geometry.setDrawRange( 0, Infinity );        // 恢复
 //   __geo.mesh.geometry.computeVertexNormals();             // 重算法线
 window.THREE = THREE;
-window.__geo = { scene, camera, mesh, material, MODES, setMode };
+window.__geo = { scene, camera, renderer, mesh, material, MODES, setMode };
