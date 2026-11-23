@@ -196,7 +196,8 @@ window.addEventListener( 'keydown', ( e ) => {
 
 		envOn = ! envOn;
 
-		// scene.environment 只自动作用于 PBR 材质（Standard / Physical）
+		// 渲染器会把 environment 也传给 Lambert/Phong，但它们的 shader 只认 CubeTexture
+		// （ENVMAP_TYPE_CUBE），PMREM 纹理用不上 —— 所以实际只有 PBR 会变
 		scene.environment = envOn ? envTexture : null;
 
 		// 环境贴图的有无会改变 shader 的 define，需要重编译

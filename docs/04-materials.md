@@ -146,9 +146,34 @@ const pmrem = new THREE.PMREMGenerator( renderer );
 scene.environment = pmrem.fromScene( new RoomEnvironment(), 0.04 ).texture;
 ```
 
-**关键细节**：`scene.environment` 只自动作用于 **PBR 材质**（`MeshStandardMaterial` / `MeshPhysicalMaterial`）。Lambert / Phong 需要各自显式设 `envMap`，而且语义不同——它们是“反射贴图”（用反射向量采样），不是辐照度积分。
+**关键细节（按 r187 源码核实）**：渲染器其实会把 `scene.environment` 也传给 Lambert / Phong：
 
-所以页面上按 <kbd>E</kbd>，只有第 ④ 个球明显变亮——这不是 bug，是设计。
+```js
+// WebGLRenderer.js
+const environment = ( material.isMeshStandardMaterial || material.isMeshLambertMaterial || material.isMeshPhongMaterial ) ? scene.environment : null;
+```
+
+但**能真正采样它的只有 PBR 的 shader**：
+
+| | 环境采样代码 | 能否吃 PMREM 纹理 |
+|---|---|---|
+| PBR | `envmap_physical_pars_fragment` | ✅ 有 `ENVMAP_TYPE_PMREM` 分支，还能按 roughness 选 mip |
+| Lambert / Phong | `envmap_fragment` | ❌ 只处理 `ENVMAP_TYPE_CUBE`（普通立方体贴图） |
+
+`PMREMGenerator` 产出的是预过滤 CubeUV 纹理，标记为 `ENVMAP_TYPE_PMREM`。所以给 Lambert / Phong 设 `scene.environment`，等于塞了一张它们不会用的图。
+
+想让 Phong 有反射，得显式给一张 **CubeTexture**：
+
+```js
+phongMat.envMap = cubeTexture;                 // 6 张面的立方体贴图
+phongMat.reflectivity = 0.8;                   // 反射强度
+phongMat.combine = THREE.AddOperation;         // 或 MixOperation
+phongMat.needsUpdate = true;
+```
+
+注意它没有“粗糙度”概念——Phong 的环境反射就是一面镜子。
+
+页面上按 <kbd>E</kbd> 只有第 ④ 个球明显变亮，原因就在这。
 
 ---
 
