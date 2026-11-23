@@ -37,6 +37,7 @@ docs/                    课堂笔记（每课一篇，Markdown）
   02-scene-graph.md
   03-buffer-geometry.md
   04-materials.md
+  04-light-formula.md   第 4 课补充：符号表 + 颜色管线排查
   pbr.md                 PBR 材质附表
   3d-math-cheatsheet.md  3D 数学公式速查（全课通用）
 ```

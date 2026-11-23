@@ -3,6 +3,7 @@
 - 页面：`/lessons/04-materials.html`
 - 代码：`src/lessons/04-materials.js`
 - 目标：知道光是怎么算到像素上的，能说清 `metalness` / `roughness` 各在控制什么
+- 配套速查：[04 补充 · 光照公式与颜色管线](04-light-formula.md)（符号表 + 排查表）
 
 ---
 
