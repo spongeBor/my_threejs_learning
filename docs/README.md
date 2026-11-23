@@ -16,6 +16,7 @@
 | [01 场景 / 相机 / 渲染循环](01-scene-camera-loop.md) | `lessons/01-hello-scene.html` | 三件套、delta、resize、像素比 |
 | [02 变换与场景图](02-scene-graph.md) | `lessons/02-solar-system.html` | 父子矩阵、五层嵌套、欧拉角陷阱 |
 | [03 手写 BufferGeometry](03-buffer-geometry.md) | `lessons/03-buffer-geometry.html` | 顶点属性、索引、绕序、动态更新 |
+| [04 材质与光照](04-materials.md) | `lessons/04-materials.html` | 四种材质、GGX、metalness/roughness、IBL |
 | [附表 PBR 材质](pbr.md) | `lessons/pbr-playground.html` | 能量守恒、微表面、IBL、参数映射 |
 | [附表 3D 数学公式](3d-math-cheatsheet.md) | 全课通用 | 向量、矩阵、投影、光照、插值、求交，含 three.js API 对照 |
 

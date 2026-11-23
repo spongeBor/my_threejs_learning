@@ -14,6 +14,7 @@ npm run dev     # http://127.0.0.1:5174
 - 第 1 课：<http://127.0.0.1:5174/lessons/01-hello-scene.html>
 - 第 2 课：<http://127.0.0.1:5174/lessons/02-solar-system.html>
 - 第 3 课：<http://127.0.0.1:5174/lessons/03-buffer-geometry.html>
+- 第 4 课：<http://127.0.0.1:5174/lessons/04-materials.html>
 - 附录：<http://127.0.0.1:5174/lessons/02-euler-compare.html>（欧拉角左右对照）
 
 ## 目录
@@ -29,6 +30,7 @@ docs/                    课堂笔记（每课一篇，Markdown）
   01-scene-camera-loop.md
   02-scene-graph.md
   03-buffer-geometry.md
+  04-materials.md
   pbr.md                 PBR 材质附表
   3d-math-cheatsheet.md  3D 数学公式速查（全课通用）
 ```
