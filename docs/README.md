@@ -18,6 +18,7 @@
 | [03 手写 BufferGeometry](03-buffer-geometry.md) | `lessons/03-buffer-geometry.html` | 顶点属性、索引、绕序、动态更新 |
 | [04 材质与光照](04-materials.md) | `lessons/04-materials.html` | 四种材质、GGX、metalness/roughness、IBL |
 | [04 补充 · 光照公式与颜色管线](04-light-formula.md) | 课 4 配套 | 符号表、PMREM vs Cube、发灰/过曝排查 |
+| [05 纹理与颜色管理](05-textures.md) | `lessons/05-textures.html` | 颜色空间、Wrap、过滤、mipmap、各向异性 |
 | [附表 PBR 材质](pbr.md) | `lessons/pbr-playground.html` | 能量守恒、微表面、IBL、参数映射 |
 | [附表 3D 数学公式](3d-math-cheatsheet.md) | 全课通用 | 向量、矩阵、投影、光照、插值、求交，含 three.js API 对照 |
 

@@ -21,6 +21,7 @@ pnpm dev        # 端口从 5174 开始，被占用会自动换下一个
 - 第 2 课：<http://127.0.0.1:5174/lessons/02-solar-system.html>
 - 第 3 课：<http://127.0.0.1:5174/lessons/03-buffer-geometry.html>
 - 第 4 课：<http://127.0.0.1:5174/lessons/04-materials.html>
+- 第 5 课：<http://127.0.0.1:5174/lessons/05-textures.html>
 - 附录：<http://127.0.0.1:5174/lessons/02-euler-compare.html>（欧拉角左右对照）
 
 ## 目录
@@ -38,6 +39,7 @@ docs/                    课堂笔记（每课一篇，Markdown）
   03-buffer-geometry.md
   04-materials.md
   04-light-formula.md   第 4 课补充：符号表 + 颜色管线排查
+  05-textures.md        第 5 课：纹理与颜色管理
   pbr.md                 PBR 材质附表
   3d-math-cheatsheet.md  3D 数学公式速查（全课通用）
 ```
