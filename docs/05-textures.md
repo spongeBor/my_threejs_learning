@@ -45,7 +45,7 @@ const tex = loader.load( 'albedo.png' );
 tex.colorSpace = THREE.SRGBColorSpace;   // 读入时按 sRGB 解码成线性
 ```
 
-忘了这一行，就是“把编码值当线性值用”——中间调被压低，画面发灰、发暗、对比度差。
+忘了这一行，就是“把编码值当线性值用”——**暗部被整体抬亮**，画面发灰、发白、对比度塌陷。
 
 ### 2.2 哪些贴图要设，哪些不能设
 
@@ -59,6 +59,17 @@ tex.colorSpace = THREE.SRGBColorSpace;   // 读入时按 sRGB 解码成线性
 
 > 判断标准一句话：**这张图是“颜色”还是“数据”？**
 > 颜色要解码，数据不能动。给法线图设 sRGB，会让法线方向整体偏掉，光照全错。
+
+### 2.2.1 数值上看“发灰”
+
+| 存储值（sRGB） | 正确显示 | 漏设 colorSpace 的显示 |
+|---|---|---|
+| 0.05（暗部） | 0.050 | **0.248** |
+| 0.20 | 0.200 | **0.485** |
+| 0.50（中间调） | 0.500 | **0.735** |
+| 0.80（亮部） | 0.800 | 0.906 |
+
+暗部被抬亮 5 倍、亮部几乎不变 → **对比度被压缩 → 发灰发白**。所以“发灰”的本质是“暗部被提亮”，不是“整体变暗”。
 
 ### 2.3 输出端的对应
 
@@ -176,7 +187,7 @@ renderer.info.memory.textures
 
 | 实验 | 预期现象 | 说明 |
 |---|---|---|
-| 按 <kbd>C</kbd> 切线性 | 右边整体发灰、变暗 | sRGB 值被当线性值读 |
+| 按 <kbd>C</kbd> 切线性 | 右边整体发灰、发白，暗部被抬亮 | sRGB 值被当线性值读 |
 | 按 <kbd>R</kbd> 切 4×4 | 纹理平铺更密 | Wrap + repeat |
 | 按 <kbd>F</kbd> 切 Nearest | 放大时出现马赛克 | 不插值 |
 | **按 <kbd>V</kbd> 贴地，再按 <kbd>M</kbd> 关 mipmap** | 远处地面剧烈闪烁 | 采样点跳变 |
@@ -240,7 +251,7 @@ renderer.info.memory.textures
 
 | 现象 | 原因 | 修法 |
 |---|---|---|
-| 贴图发灰、对比低 | 没设 `colorSpace` | `tex.colorSpace = SRGBColorSpace` |
+| 贴图发灰发白、对比低 | 没设 `colorSpace`（暗部被当线性值抬亮） | `tex.colorSpace = SRGBColorSpace` |
 | 法线贴图“没效果” | 被当成 sRGB 解码了 | `normalMap.colorSpace = NoColorSpace` |
 | 纹理重复但只显示一块 | 没设 `wrapS/wrapT` | `RepeatWrapping` |
 | 远处剧烈闪烁 | 关了 mipmap | 开 `generateMipmaps` |
