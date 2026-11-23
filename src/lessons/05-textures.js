@@ -368,4 +368,5 @@ window.addEventListener( 'resize', () => {
 //   __tex.right.map.colorSpace = THREE.NoColorSpace;
 //   __tex.floor.material.map.anisotropy = 16;
 //   __tex.renderer.info.memory.textures
+window.THREE = THREE;
 window.__tex = { scene, camera, renderer, left: leftMesh, right: rightMesh, floor, state, MAX_ANISO };
