@@ -1,0 +1,4 @@
+# pnpm v10+：构建脚本白名单放在这里（package.json 里的 pnpm 字段已不再读取）
+# esbuild 需要跑 postinstall 才能落地原生二进制，否则 vite 起不来
+allowBuilds:
+  esbuild: true

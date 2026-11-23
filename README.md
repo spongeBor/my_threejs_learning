@@ -6,9 +6,12 @@
 ## 跑起来
 
 ```bash
-npm install     # 第一次
-npm run dev     # 端口从 5174 开始，被占用会自动换下一个
+pnpm install    # 第一次
+pnpm dev        # 端口从 5174 开始，被占用会自动换下一个
 ```
+
+包管理器是 **pnpm**（`package.json` 里 `packageManager` 锁了 11.21.0）。
+用 npm 装会生成第二份 lockfile，别混用；`package-lock.json` 已删除，现在只有 `pnpm-lock.yaml`。
 
 **端口是自动的**：`vite.config.js` 里没有开 `strictPort`，5174 被占就顺延到 5175、5176……
 所以**以终端打印的地址为准**，下面写死 5174 的链接在换端口后要自己替换。
