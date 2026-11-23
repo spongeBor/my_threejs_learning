@@ -5,26 +5,28 @@ import { createHUD } from '../lib/hud.js';
 /**
  * Lesson 05 · 纹理与颜色管理
  *
- * 左边：正确示范 —— colorSpace = SRGBColorSpace
- * 右边：实验对象 —— 按下面的键切换各种纹理参数，观察差别
+ * 场景：两块竖牌（正面看）+ 一块大地面（斜着看到远处）。
  *
- *   C  颜色空间      sRGB ↔ 线性（线性读 = 发灰、发暗）
- *   R  重复          repeat 1×1 ↔ 4×4（同时切 WrapS/T = RepeatWrapping）
- *   F  过滤          Linear ↔ Nearest（近邻采样 = 马赛克）
- *   A  各向异性      1 ↔ 最大（斜视角地面糊成一团时最有用）
- *   M  mipmap        开 ↔ 关（关掉远处会闪烁）
+ * 左边竖牌：正确示范（sRGB），永远不动
+ * 右边竖牌 + 地面：随按键变化
  *
- * 一张纹理 = 一张图 + 一组采样规则 + 一段 UV 坐标。
- * 画面"发灰"十有八九是颜色空间没设对，"远处闪烁"是 mipmap，
- * "斜着看糊"是各向异性。
+ *   C  颜色空间    sRGB ↔ 线性（线性读 = 发灰、发暗）
+ *   R  重复        1×1 ↔ 4×4（地面是 8× / 32×）
+ *   F  过滤        Linear ↔ Nearest（近邻 = 马赛克）
+ *   A  各向异性    1 ↔ 设备上限
+ *   M  mipmap      开 ↔ 关
+ *   V  机位        正面 ↔ 贴地斜视（看远处细节必须用这个）
+ *
+ * 为什么要有地面：mipmap 和各向异性只在"远处、斜视、大量重复"时才显形。
+ * 两块近处的小平面永远看不出差别。
  */
 
 const hud = createHUD( {
 	title: 'Lesson 05 · 纹理与颜色管理',
 	tips: [
 		'<kbd>C</kbd> 颜色空间 · <kbd>R</kbd> 重复 · <kbd>F</kbd> 过滤',
-		'<kbd>A</kbd> 各向异性 · <kbd>M</kbd> mipmap',
-		'左侧是正确示范（sRGB），右侧随按键变化',
+		'<kbd>A</kbd> 各向异性 · <kbd>M</kbd> mipmap · <kbd>V</kbd> 换机位',
+		'看 mipmap / 各向异性：先按 <kbd>V</kbd> 贴地，再对比',
 	],
 } );
 
@@ -35,7 +37,8 @@ stateRow.innerHTML = `
 	repeat <b id="t-rep">1×1</b> ·
 	filter <b id="t-fil">Linear</b><br>
 	anisotropy <b id="t-aniso">1</b> ·
-	mipmap <b id="t-mip">开</b>`;
+	mipmap <b id="t-mip">开</b> ·
+	机位 <b id="t-view">正面</b>`;
 document.getElementById( 'hud' ).appendChild( stateRow );
 
 const csEl = stateRow.querySelector( '#t-cs' );
@@ -43,6 +46,7 @@ const repEl = stateRow.querySelector( '#t-rep' );
 const filEl = stateRow.querySelector( '#t-fil' );
 const anisoEl = stateRow.querySelector( '#t-aniso' );
 const mipEl = stateRow.querySelector( '#t-mip' );
+const viewEl = stateRow.querySelector( '#t-view' );
 
 // ---------------------------------------------------------------------------
 // 场景
@@ -57,22 +61,23 @@ document.body.appendChild( renderer.domElement );
 const scene = new THREE.Scene();
 scene.background = new THREE.Color( 0x05070c );
 
-const camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 0.1, 100 );
-camera.position.set( 0, 1.2, 8.2 );
+const camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.1, 400 );
+camera.position.set( 0, 1.4, 8.4 );
 
 const controls = new OrbitControls( camera, renderer.domElement );
-controls.target.set( 0, 0, 0 );
+controls.target.set( 0, - 0.4, 0 );
 controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI * 0.52;   // 别让相机钻到地面下面
 
-scene.add( new THREE.HemisphereLight( 0x3d5170, 0x0a0d14, 0.6 ) );
+scene.add( new THREE.HemisphereLight( 0x3d5170, 0x0a0d14, 0.7 ) );
 
-const keyLight = new THREE.DirectionalLight( 0xffffff, 2.6 );
-keyLight.position.set( 3, 5, 6 );
+const keyLight = new THREE.DirectionalLight( 0xffffff, 2.4 );
+keyLight.position.set( 4, 7, 6 );
 scene.add( keyLight );
 
 // ---------------------------------------------------------------------------
-// 程序化贴图：棋盘 + 渐变 + 细线 + 小圆点
-// 细线用来观察过滤/mipmap，渐变用来观察颜色空间
+// 程序化贴图：棋盘 + 渐变 + 1px 细线 + 彩点
+// 细线是"远处/斜视"效果的探针：mipmap 一关就闪，各向异性一开就复清晰
 // ---------------------------------------------------------------------------
 function makeCheckerCanvas() {
 
@@ -82,14 +87,12 @@ function makeCheckerCanvas() {
 	canvas.height = size;
 	const ctx = canvas.getContext( '2d' );
 
-	// 底色渐变：中间亮、四角暗。颜色空间出错时，这部分会最先"塌陷"
 	const g = ctx.createRadialGradient( size / 2, size / 2, 20, size / 2, size / 2, size * 0.72 );
 	g.addColorStop( 0, '#f2f4f8' );
 	g.addColorStop( 1, '#6b7686' );
 	ctx.fillStyle = g;
 	ctx.fillRect( 0, 0, size, size );
 
-	// 棋盘
 	const cells = 8;
 	const step = size / cells;
 
@@ -106,13 +109,13 @@ function makeCheckerCanvas() {
 
 	}
 
-	// 细线：1px，靠近看才清楚 —— 观察过滤与各向异性
 	ctx.strokeStyle = 'rgba(255, 120, 90, 0.9)';
 	ctx.lineWidth = 1;
 
 	for ( let i = 0; i <= 32; i ++ ) {
 
 		const p = ( i / 32 ) * size;
+
 		ctx.beginPath();
 		ctx.moveTo( p, 0 );
 		ctx.lineTo( p, size );
@@ -125,9 +128,8 @@ function makeCheckerCanvas() {
 
 	}
 
-	// 彩色圆点：给颜色偏移一个参照
 	const dots = [ '#ff6b6b', '#7ee787', '#79c0ff', '#ffd166' ];
-	dots.forEach( (color, i) => {
+	dots.forEach( ( color, i ) => {
 
 		ctx.fillStyle = color;
 		ctx.beginPath();
@@ -152,29 +154,46 @@ function makeTexture( colorSpace ) {
 }
 
 // ---------------------------------------------------------------------------
-// 两块相同的平面，只有纹理参数不同
+// 两块竖牌
 // ---------------------------------------------------------------------------
 const PLANE = 3.2;
-const geometry = new THREE.PlaneGeometry( PLANE, PLANE );
+const planeGeometry = new THREE.PlaneGeometry( PLANE, PLANE );
 
 const leftTexture = makeTexture( THREE.SRGBColorSpace );
 const rightTexture = makeTexture( THREE.SRGBColorSpace );
 
-const materialOptions = { roughness: 0.75, metalness: 0.05 };
-
 const leftMesh = new THREE.Mesh(
-	geometry,
-	new THREE.MeshStandardMaterial( { ...materialOptions, map: leftTexture } ),
+	planeGeometry,
+	new THREE.MeshStandardMaterial( { map: leftTexture, roughness: 0.75, metalness: 0.05 } ),
 );
-leftMesh.position.x = - 2.0;
+leftMesh.position.set( - 2.0, 0, 0 );
 scene.add( leftMesh );
 
 const rightMesh = new THREE.Mesh(
-	geometry,
-	new THREE.MeshStandardMaterial( { ...materialOptions, map: rightTexture } ),
+	planeGeometry,
+	new THREE.MeshStandardMaterial( { map: rightTexture, roughness: 0.75, metalness: 0.05 } ),
 );
-rightMesh.position.x = 2.0;
+rightMesh.position.set( 2.0, 0, 0 );
 scene.add( rightMesh );
+
+// ---------------------------------------------------------------------------
+// 大地面：这才是看 mipmap / 各向异性的地方
+// ---------------------------------------------------------------------------
+const FLOOR_SIZE = 120;
+const FLOOR_BASE_REPEAT = 8;      // 基础平铺次数，密度足够高才看得出远处糊不糊
+
+const floorTexture = makeTexture( THREE.SRGBColorSpace );
+floorTexture.wrapS = THREE.RepeatWrapping;
+floorTexture.wrapT = THREE.RepeatWrapping;
+floorTexture.repeat.set( FLOOR_BASE_REPEAT, FLOOR_BASE_REPEAT );
+
+const floor = new THREE.Mesh(
+	new THREE.PlaneGeometry( FLOOR_SIZE, FLOOR_SIZE ),
+	new THREE.MeshStandardMaterial( { map: floorTexture, roughness: 0.85, metalness: 0.0 } ),
+);
+floor.rotation.x = - Math.PI / 2;
+floor.position.y = - 1.7;
+scene.add( floor );
 
 // 标签
 function makeLabel( text, cls ) {
@@ -190,7 +209,7 @@ function makeLabel( text, cls ) {
 }
 
 const labelLeft = makeLabel( '正确：sRGB 解码', 'good' );
-const labelRight = makeLabel( '实验：按 C/R/F/A/M 改参数', '' );
+const labelRight = makeLabel( '实验：C/R/F/A/M 改参数', '' );
 
 const projected = new THREE.Vector3();
 
@@ -203,7 +222,7 @@ function updateLabels() {
 
 	for ( const t of targets ) {
 
-		projected.set( t.x, - PLANE / 2 - 0.35, 0 ).project( camera );
+		projected.set( t.x, - PLANE / 2 - 0.3, 0 ).project( camera );
 		t.el.style.left = `${ ( projected.x * 0.5 + 0.5 ) * window.innerWidth }px`;
 		t.el.style.top = `${ ( - projected.y * 0.5 + 0.5 ) * window.innerHeight }px`;
 
@@ -220,30 +239,41 @@ const state = {
 	nearest: false,
 	anisotropy: 1,
 	mipmap: true,
+	grazing: false,
 };
 
-function applyTextureState() {
+const MAX_ANISO = renderer.capabilities.getMaxAnisotropy();
 
-	// 颜色空间：颜色贴图必须是 sRGB，否则会被当成线性值读，导致发灰
-	rightTexture.colorSpace = state.srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+// 把当前状态应用到一个纹理上；baseRepeat 决定它自身的基础平铺密度
+function applyTo( tex, baseRepeat ) {
 
-	// 重复：超出 0~1 的 UV 怎么取
-	rightTexture.wrapS = state.repeat > 1 ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
-	rightTexture.wrapT = rightTexture.wrapS;
-	rightTexture.repeat.set( state.repeat, state.repeat );
+	// 颜色空间：颜色贴图必须 sRGB，否则被当线性值读 → 发灰
+	tex.colorSpace = state.srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+
+	// 重复：UV 超出 0~1 怎么取
+	tex.wrapS = THREE.RepeatWrapping;
+	tex.wrapT = THREE.RepeatWrapping;
+
+	const r = baseRepeat * state.repeat;
+	tex.repeat.set( r, r );
 
 	// 过滤：像素之间怎么插值
-	rightTexture.magFilter = state.nearest ? THREE.NearestFilter : THREE.LinearFilter;
-	rightTexture.minFilter = state.nearest
+	tex.magFilter = state.nearest ? THREE.NearestFilter : THREE.LinearFilter;
+	tex.minFilter = state.nearest
 		? THREE.NearestFilter
 		: ( state.mipmap ? THREE.LinearMipmapLinearFilter : THREE.LinearFilter );
 
-	rightTexture.generateMipmaps = state.mipmap;
+	tex.generateMipmaps = state.mipmap;
+	tex.anisotropy = state.anisotropy;
 
-	rightTexture.anisotropy = state.anisotropy;
+	tex.needsUpdate = true;
 
-	// 纹理参数改变后要重新上传
-	rightTexture.needsUpdate = true;
+}
+
+function applyTextureState() {
+
+	applyTo( rightTexture, 1 );
+	applyTo( floorTexture, FLOOR_BASE_REPEAT );
 
 	refreshHUD();
 
@@ -254,45 +284,49 @@ function refreshHUD() {
 	csEl.textContent = state.srgb ? 'sRGB' : '线性（错）';
 	csEl.style.color = state.srgb ? '#7ee787' : '#ff8b8b';
 
-	repEl.textContent = `${ state.repeat }×${ state.repeat }`;
+	repEl.textContent = `${ state.repeat * FLOOR_BASE_REPEAT }× / ${ state.repeat }×`;
 	filEl.textContent = state.nearest ? 'Nearest' : 'Linear';
 
 	anisoEl.textContent = String( state.anisotropy );
 	mipEl.textContent = state.mipmap ? '开' : '关';
+	viewEl.textContent = state.grazing ? '贴地斜视' : '正面';
 
 }
 
-const MAX_ANISO = renderer.capabilities.getMaxAnisotropy();
+// 两个机位：正面看竖牌；贴地看远处地面
+function applyCameraPose() {
+
+	if ( state.grazing ) {
+
+		camera.position.set( 0, 0.45, 2.2 );
+		controls.target.set( 0, - 0.9, - 26 );
+
+	} else {
+
+		camera.position.set( 0, 1.4, 8.4 );
+		controls.target.set( 0, - 0.4, 0 );
+
+	}
+
+	controls.update();
+
+}
 
 window.addEventListener( 'keydown', ( e ) => {
 
 	const k = e.key.toLowerCase();
 
-	if ( k === 'c' ) {
+	if ( k === 'c' ) state.srgb = ! state.srgb;
+	else if ( k === 'r' ) state.repeat = state.repeat === 1 ? 4 : 1;
+	else if ( k === 'f' ) state.nearest = ! state.nearest;
+	else if ( k === 'a' ) state.anisotropy = state.anisotropy === 1 ? MAX_ANISO : 1;
+	else if ( k === 'm' ) state.mipmap = ! state.mipmap;
+	else if ( k === 'v' ) {
 
-		state.srgb = ! state.srgb;
+		state.grazing = ! state.grazing;
+		applyCameraPose();
 
-	} else if ( k === 'r' ) {
-
-		state.repeat = state.repeat === 1 ? 4 : 1;
-
-	} else if ( k === 'f' ) {
-
-		state.nearest = ! state.nearest;
-
-	} else if ( k === 'a' ) {
-
-		state.anisotropy = state.anisotropy === 1 ? MAX_ANISO : 1;
-
-	} else if ( k === 'm' ) {
-
-		state.mipmap = ! state.mipmap;
-
-	} else {
-
-		return;
-
-	}
+	} else return;
 
 	applyTextureState();
 
@@ -300,7 +334,6 @@ window.addEventListener( 'keydown', ( e ) => {
 
 applyTextureState();
 
-// HUD 里顺手标出这台机器的上限
 const capsRow = document.createElement( 'div' );
 capsRow.className = 'row';
 capsRow.innerHTML = `设备上限：各向异性 <b>${ MAX_ANISO }</b> · 最大纹理 <b>${ renderer.capabilities.maxTextureSize }</b>`;
@@ -332,8 +365,7 @@ window.addEventListener( 'resize', () => {
 } );
 
 // 控制台实验：
-//   __tex.right.map.colorSpace = THREE.NoColorSpace;   // 手动改颜色空间
-//   __tex.right.map.repeat.set( 8, 8 );                // 纹理放大 8 倍
-//   __tex.right.map.dispose();                         // 显存要手动还
-//   __tex.renderer.info.memory.textures                // 当前吃了几张纹理
-window.__tex = { scene, camera, renderer, left: leftMesh, right: rightMesh, state, MAX_ANISO };
+//   __tex.right.map.colorSpace = THREE.NoColorSpace;
+//   __tex.floor.material.map.anisotropy = 16;
+//   __tex.renderer.info.memory.textures
+window.__tex = { scene, camera, renderer, left: leftMesh, right: rightMesh, floor, state, MAX_ANISO };

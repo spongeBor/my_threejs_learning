@@ -177,12 +177,16 @@ renderer.info.memory.textures
 | 实验 | 预期现象 | 说明 |
 |---|---|---|
 | 按 <kbd>C</kbd> 切线性 | 右边整体发灰、变暗 | sRGB 值被当线性值读 |
-| 按 <kbd>R</kbd> 切 4×4 | 纹理平铺 4 次 | Wrap + repeat |
+| 按 <kbd>R</kbd> 切 4×4 | 纹理平铺更密 | Wrap + repeat |
 | 按 <kbd>F</kbd> 切 Nearest | 放大时出现马赛克 | 不插值 |
-| 把相机贴近平面再按 <kbd>M</kbd> 关 mipmap | 远处细线剧烈闪烁 | 采样点跳变 |
-| 按 <kbd>A</kbd> 开各向异性，把视角压到很斜 | 远处细线重新变清晰 | 沿一个方向多采样 |
-| 查 `__tex.renderer.info.memory.textures` | 2 | 两张纹理 |
-| 控制台删掉一张 `dispose()` 再看 | 1 | 显存要手动还 |
+| **按 <kbd>V</kbd> 贴地，再按 <kbd>M</kbd> 关 mipmap** | 远处地面剧烈闪烁 | 采样点跳变 |
+| **贴地状态下按 <kbd>A</kbd> 开各向异性** | 远处地砖从"糊"变"清" | 沿长轴多采几次 |
+| 查 `__tex.renderer.info.memory.textures` | 3 | 三张纹理 |
+| 控制台 `__tex.floor.material.map.dispose()` 再看 | 2 | 显存要手动还 |
+
+> **为什么一定要按 <kbd>V</kbd>**：mipmap 和各向异性只作用于“缩小采样”。
+> 正对着两块近处的竖牌，屏幕上每个像素几乎对应一个纹素，两种设置看起来一模一样。
+> 必须让地面**向远处延伸**、并且**以很小的夹角看**，缩小采样才真正发生。
 
 ---
 
