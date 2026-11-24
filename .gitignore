@@ -2,3 +2,6 @@ node_modules
 dist
 .DS_Store
 .pnpm-store
+
+# 第 6 课的示例模型由 pnpm assets 生成，不进版本库
+public/models/

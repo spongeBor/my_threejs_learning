@@ -107,3 +107,22 @@ code { font-family: ui-monospace, monospace; }
 .doc p { margin: 0; color: var(--muted); font-size: 12px; }
 .sub.small { font-size: 12.5px; margin-bottom: 14px; }
 .sub.small code { background: #161d29; padding: 1px 5px; border-radius: 4px; }
+
+/* ---------- 06 加载进度条 ---------- */
+#load-bar {
+	position: fixed;
+	left: 50%;
+	bottom: 20px;
+	transform: translateX(-50%);
+	width: min(420px, 72vw);
+	padding: 10px 12px;
+	background: rgba(13, 17, 23, .82);
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	backdrop-filter: blur(6px);
+	font-size: 12px;
+}
+#load-bar .label { display: flex; justify-content: space-between; gap: 12px; color: var(--muted); margin-bottom: 6px; }
+#load-bar .track { height: 6px; background: #161d29; border-radius: 999px; overflow: hidden; }
+#load-bar .fill { height: 100%; width: 0; background: var(--accent); transition: width .12s linear; }
+#load-bar .fill.err { background: #ff6b6b; }
