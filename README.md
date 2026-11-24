@@ -42,6 +42,7 @@ docs/                    课堂笔记（每课一篇，Markdown）
   05-textures.md        第 5 课：纹理与颜色管理
   pbr.md                 PBR 材质附表
   3d-math-cheatsheet.md  3D 数学公式速查（全课通用）
+  vocab.md               术语表（第 1–5 课）
 ```
 
 ## 约定

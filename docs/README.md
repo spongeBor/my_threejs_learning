@@ -13,6 +13,7 @@
 
 | 笔记 | 对应页面 | 内容 |
 |---|---|---|
+| [术语表（第 1–5 课）](vocab.md) | 全课通用 | 名词 → 一句话，含三张计算卡 |
 | [01 场景 / 相机 / 渲染循环](01-scene-camera-loop.md) | `lessons/01-hello-scene.html` | 三件套、delta、resize、像素比 |
 | [02 变换与场景图](02-scene-graph.md) | `lessons/02-solar-system.html` | 父子矩阵、五层嵌套、欧拉角陷阱 |
 | [03 手写 BufferGeometry](03-buffer-geometry.md) | `lessons/03-buffer-geometry.html` | 顶点属性、索引、绕序、动态更新 |
