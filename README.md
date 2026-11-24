@@ -45,6 +45,7 @@ docs/                    课堂笔记（每课一篇，Markdown）
   pbr.md                 PBR 材质附表
   3d-math-cheatsheet.md  3D 数学公式速查（全课通用）
   vocab.md               术语表（第 1–5 课）
+  must-remember.md       必背清单 + 失分点（第 1–6 课）
 ```
 
 ## 约定
